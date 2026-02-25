@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Live Blog — Embed Generator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --brand-accent: #c0392b;
+    --bg: #f5f5f0;
+    --card-bg: #fff;
+    --text: #1a1a1a;
+    --text-muted: #777;
+    --border: #ddd;
+    --font: 'DM Sans', -apple-system, sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .generator {
+    max-width: 580px;
+    margin: 0 auto;
+    padding: 16px;
+  }
+
+  .generator-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0 20px;
+  }
+
+  .generator-header h1 { font-size: 20px; font-weight: 800; letter-spacing: -0.3px; }
+
+  .generator-header__badge {
+    font-size: 11px; font-family: var(--mono); font-weight: 700;
+    color: #fff; background: #555;
+    padding: 3px 10px; border-radius: 3px; letter-spacing: 0.5px;
+  }
+
+  .card {
+    background: var(--card-bg); border-radius: 8px;
+    border: 1px solid var(--border); padding: 20px; margin-bottom: 12px;
+  }
+
+  .card h2 {
+    font-size: 15px; font-weight: 700; margin-bottom: 14px;
+  }
+
+  label {
+    display: block; font-size: 12px; font-weight: 700; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 0.5px; font-family: var(--mono); margin-bottom: 5px;
+  }
+
+  .field { margin-bottom: 14px; }
+
+  input[type="text"], input[type="url"], input[type="number"], select {
+    width: 100%; padding: 11px 14px; border: 1px solid var(--border);
+    border-radius: 6px; font-family: var(--font); font-size: 15px;
+    color: var(--text); background: #fff; transition: border-color 0.2s;
+  }
+
+  input:focus, select:focus {
+    outline: none; border-color: var(--brand-accent);
+    box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.08);
+  }
+
+  .field-hint {
+    font-size: 12px; color: #999; margin-top: 4px;
+  }
+
+  .field-row {
+    display: flex; gap: 10px;
+  }
+
+  .field-row .field { flex: 1; }
+
+  /* Output */
+  .output-area {
+    position: relative;
+  }
+
+  .output-code {
+    width: 100%; min-height: 120px; padding: 14px;
+    border: 1px solid var(--border); border-radius: 6px;
+    font-family: var(--mono); font-size: 12px; line-height: 1.6;
+    color: var(--text); background: #f8f8f5;
+    resize: vertical; cursor: text;
+  }
+
+  .copy-btn {
+    position: absolute; top: 8px; right: 8px;
+    padding: 6px 14px; background: var(--text); color: #fff;
+    border: none; border-radius: 4px; font-family: var(--font);
+    font-size: 13px; font-weight: 700; cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .copy-btn:hover { background: #333; }
+  .copy-btn--copied { background: #27ae60 !important; }
+
+  /* Preview */
+  .preview-frame {
+    border: 1px solid var(--border); border-radius: 6px;
+    overflow: hidden; background: #fff;
+  }
+
+  .preview-frame iframe {
+    width: 100%; height: 300px; border: none; display: block;
+  }
+
+  .preview-label {
+    font-size: 11px; font-family: var(--mono); font-weight: 700;
+    color: var(--text-muted); text-transform: uppercase;
+    letter-spacing: 0.5px; padding: 8px 12px;
+    background: #f5f5f5; border-bottom: 1px solid var(--border);
+  }
+
+  /* Links */
+  .links-card {
+    display: flex; gap: 8px; flex-wrap: wrap;
+  }
+
+  .link-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 14px; border-radius: 6px; border: 1px solid var(--border);
+    background: #fff; font-family: var(--font); font-size: 13px;
+    font-weight: 600; color: var(--text); cursor: pointer;
+    text-decoration: none; transition: all 0.15s;
+  }
+
+  .link-btn:hover { border-color: #aaa; background: #fafafa; }
+
+  .toast {
+    position: fixed; bottom: 20px; left: 50%;
+    transform: translateX(-50%) translateY(100px); background: var(--text);
+    color: #fff; padding: 12px 24px; border-radius: 8px; font-size: 14px;
+    font-weight: 600; opacity: 0; transition: all 0.3s; z-index: 1000;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+</style>
+</head>
+<body>
+
+<div class="generator">
+  <div class="generator-header">
+    <h1>📋 Embed Generator</h1>
+    <span class="generator-header__badge">TOOL</span>
+  </div>
+
+  <!-- Settings (saved) -->
+  <div class="card" id="settingsCard">
+    <h2>⚙️ Base Settings</h2>
+    <div class="field">
+      <label>GitHub Pages URL</label>
+      <input type="url" id="baseUrl" placeholder="https://jonathansheppard.github.io/live-blog" oninput="generate()">
+      <div class="field-hint">Your GitHub Pages root URL (no trailing slash)</div>
+    </div>
+    <div class="field">
+      <label>Apps Script URL</label>
+      <input type="url" id="apiUrl" placeholder="https://script.google.com/macros/s/.../exec" oninput="generate()">
+    </div>
+    <button onclick="saveBaseSettings()" style="
+      padding: 8px 16px; background: var(--text); color: #fff;
+      border: none; border-radius: 6px; font-weight: 700;
+      font-family: var(--font); cursor: pointer; font-size: 13px;
+    ">Save (remembers these)</button>
+  </div>
+
+  <!-- Per-story settings -->
+  <div class="card">
+    <h2>📰 Story Details</h2>
+    <div class="field">
+      <label>Event ID</label>
+      <input type="text" id="eventId" placeholder="e.g. a55-crash-feb25" oninput="generate()">
+      <div class="field-hint">Lowercase, no spaces — use hyphens. Must match your admin form.</div>
+    </div>
+    <div class="field">
+      <label>Headline</label>
+      <input type="text" id="title" placeholder="e.g. BREAKING: A55 Closed Near Ewloe" oninput="generate()">
+    </div>
+    <div class="field">
+      <label>Subtitle</label>
+      <input type="text" id="subtitle" placeholder="e.g. Live updates on the A55 closure" oninput="generate()">
+      <div class="field-hint">Optional — shown below the headline</div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Height (px)</label>
+        <input type="number" id="height" value="800" oninput="generate()">
+      </div>
+      <div class="field">
+        <label>Max Width (px)</label>
+        <input type="number" id="maxWidth" value="620" oninput="generate()">
+      </div>
+    </div>
+    <div class="field">
+      <label>Status</label>
+      <select id="ended" onchange="generate()">
+        <option value="false">🟢 Live</option>
+        <option value="true">⚫ Ended</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Output -->
+  <div class="card">
+    <h2>📦 Embed Code</h2>
+    <p style="font-size:13px; color:var(--text-muted); margin-bottom:12px;">
+      Copy this into a <strong>Custom HTML</strong> block in your WordPress post.
+    </p>
+    <div class="output-area">
+      <textarea class="output-code" id="outputCode" readonly></textarea>
+      <button class="copy-btn" id="copyBtn" onclick="copyCode()">Copy</button>
+    </div>
+  </div>
+
+  <!-- Quick links -->
+  <div class="card">
+    <h2>🔗 Quick Links</h2>
+    <div class="links-card">
+      <a class="link-btn" id="linkLiveBlog" href="#" target="_blank">📡 Open Live Blog</a>
+      <a class="link-btn" id="linkAdmin" href="#" target="_blank">📝 Open Admin Form</a>
+      <a class="link-btn" id="linkSheet" href="#" onclick="copyEventId(); return false;">📋 Copy Event ID</a>
+    </div>
+  </div>
+
+  <!-- Preview -->
+  <div class="card">
+    <h2>👁 Preview</h2>
+    <div class="preview-frame">
+      <div class="preview-label">Live Preview</div>
+      <iframe id="previewFrame" src="about:blank"></iframe>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // ============================================================
+  // LOAD SAVED SETTINGS
+  // ============================================================
+  function init() {
+    try {
+      const saved = JSON.parse(localStorage.getItem('liveblog_embed_gen') || '{}');
+      if (saved.baseUrl) document.getElementById('baseUrl').value = saved.baseUrl;
+      if (saved.apiUrl) document.getElementById('apiUrl').value = saved.apiUrl;
+    } catch(e) {}
+    generate();
+  }
+
+  function saveBaseSettings() {
+    const data = {
+      baseUrl: document.getElementById('baseUrl').value.trim(),
+      apiUrl: document.getElementById('apiUrl').value.trim(),
+    };
+    localStorage.setItem('liveblog_embed_gen', JSON.stringify(data));
+    showToast('Base settings saved ✓');
+  }
+
+  // ============================================================
+  // GENERATE EMBED CODE
+  // ============================================================
+  function generate() {
+    const baseUrl = document.getElementById('baseUrl').value.trim().replace(/\/$/, '');
+    const apiUrl = document.getElementById('apiUrl').value.trim();
+    const eventId = document.getElementById('eventId').value.trim();
+    const title = document.getElementById('title').value.trim();
+    const subtitle = document.getElementById('subtitle').value.trim();
+    const height = document.getElementById('height').value || '800';
+    const maxWidth = document.getElementById('maxWidth').value || '620';
+    const ended = document.getElementById('ended').value;
+
+    // Build src URL
+    let src = `${baseUrl}/index.html`;
+    const params = [];
+    if (apiUrl) params.push(`api=${encodeURIComponent(apiUrl)}`);
+    if (eventId) params.push(`event_id=${encodeURIComponent(eventId)}`);
+    if (title) params.push(`title=${encodeURIComponent(title)}`);
+    if (subtitle) params.push(`subtitle=${encodeURIComponent(subtitle)}`);
+    if (ended === 'true') params.push('ended=true');
+    if (params.length) src += '?' + params.join('&');
+
+    // Generate iframe code
+    const iframe = `<iframe\n  src="${src}"\n  width="100%"\n  height="${height}"\n  style="border:none; max-width:${maxWidth}px; margin:0 auto; display:block;">\n</iframe>`;
+
+    document.getElementById('outputCode').value = iframe;
+
+    // Update quick links
+    document.getElementById('linkLiveBlog').href = src;
+    const adminUrl = `${baseUrl}/admin.html`;
+    document.getElementById('linkAdmin').href = adminUrl;
+
+    // Update preview
+    const frame = document.getElementById('previewFrame');
+    if (baseUrl && apiUrl) {
+      frame.src = src;
+    }
+  }
+
+  // ============================================================
+  // COPY ACTIONS
+  // ============================================================
+  function copyCode() {
+    const code = document.getElementById('outputCode').value;
+    navigator.clipboard.writeText(code).then(() => {
+      const btn = document.getElementById('copyBtn');
+      btn.textContent = 'Copied!';
+      btn.classList.add('copy-btn--copied');
+      showToast('Embed code copied ✓');
+      setTimeout(() => {
+        btn.textContent = 'Copy';
+        btn.classList.remove('copy-btn--copied');
+      }, 2000);
+    });
+  }
+
+  function copyEventId() {
+    const id = document.getElementById('eventId').value.trim();
+    if (!id) { showToast('Enter an Event ID first', true); return; }
+    navigator.clipboard.writeText(id).then(() => {
+      showToast('Event ID copied: ' + id);
+    });
+  }
+
+  // ============================================================
+  // TOAST
+  // ============================================================
+  function showToast(msg) {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.className = 'toast show';
+    setTimeout(() => toast.className = 'toast', 3000);
+  }
+
+  init();
+</script>
+
+</body>
+</html>
