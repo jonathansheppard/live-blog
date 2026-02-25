@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Live Blog Admin — Deeside.com</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --brand-accent: #c0392b;
+    --bg: #f5f5f0;
+    --card-bg: #fff;
+    --text: #1a1a1a;
+    --text-muted: #777;
+    --border: #ddd;
+    --font: 'DM Sans', -apple-system, sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .admin {
+    max-width: 540px;
+    margin: 0 auto;
+    padding: 16px;
+  }
+
+  .admin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0 20px;
+  }
+
+  .admin-header h1 { font-size: 20px; font-weight: 800; letter-spacing: -0.3px; }
+
+  .admin-header__badge {
+    font-size: 11px; font-family: var(--mono); font-weight: 700;
+    color: #fff; background: var(--brand-accent);
+    padding: 3px 10px; border-radius: 3px; letter-spacing: 0.5px;
+  }
+
+  .settings-card {
+    background: var(--card-bg); border-radius: 8px;
+    border: 1px solid var(--border); padding: 16px; margin-bottom: 12px;
+  }
+
+  .settings-card summary {
+    font-weight: 700; font-size: 14px; cursor: pointer; list-style: none;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+
+  .settings-card summary::after { content: '▾'; font-size: 12px; color: var(--text-muted); }
+  .settings-card[open] summary::after { content: '▴'; }
+  .settings-card__inner { padding-top: 14px; display: flex; flex-direction: column; gap: 10px; }
+
+  .compose-card {
+    background: var(--card-bg); border-radius: 8px;
+    border: 1px solid var(--border); padding: 20px; margin-bottom: 12px;
+  }
+
+  .type-selector { display: flex; gap: 8px; margin-bottom: 16px; }
+
+  .type-btn {
+    flex: 1; padding: 10px 8px; border-radius: 6px; border: 2px solid var(--border);
+    background: #fff; font-family: var(--font); font-weight: 600;
+    font-size: 13px; cursor: pointer; text-align: center; transition: all 0.15s;
+  }
+  .type-btn:hover { border-color: #aaa; }
+  .type-btn.active { border-color: var(--text); background: var(--text); color: #fff; }
+  .type-btn .type-icon { display: block; font-size: 18px; margin-bottom: 2px; }
+
+  label {
+    display: block; font-size: 12px; font-weight: 700; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 0.5px; font-family: var(--mono); margin-bottom: 5px;
+  }
+
+  .field { margin-bottom: 14px; }
+
+  input[type="text"], input[type="url"], textarea, select {
+    width: 100%; padding: 11px 14px; border: 1px solid var(--border);
+    border-radius: 6px; font-family: var(--font); font-size: 15px;
+    color: var(--text); background: #fff; transition: border-color 0.2s;
+  }
+  input:focus, textarea:focus, select:focus {
+    outline: none; border-color: var(--brand-accent);
+    box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.08);
+  }
+  textarea { resize: vertical; min-height: 120px; line-height: 1.5; }
+  .field--optional label::after { content: ' (optional)'; font-weight: 500; color: #bbb; text-transform: none; }
+
+  /* Media section */
+  .media-section {
+    border: 1px solid var(--border); border-radius: 8px;
+    margin-bottom: 14px; overflow: hidden;
+  }
+  .media-section__header { display: flex; border-bottom: 1px solid var(--border); }
+  .media-tab {
+    flex: 1; padding: 10px; font-family: var(--font); font-size: 13px;
+    font-weight: 600; text-align: center; cursor: pointer; border: none;
+    background: #f5f5f5; color: var(--text-muted); transition: all 0.15s;
+  }
+  .media-tab:not(:last-child) { border-right: 1px solid var(--border); }
+  .media-tab.active { background: #fff; color: var(--text); }
+  .media-panel { display: none; padding: 14px; }
+  .media-panel.active { display: block; }
+
+  /* Upload area */
+  .upload-area {
+    border: 2px dashed var(--border); border-radius: 6px; padding: 20px;
+    text-align: center; cursor: pointer; transition: all 0.2s; position: relative;
+  }
+  .upload-area:hover { border-color: var(--brand-accent); background: rgba(192,57,43,0.02); }
+  .upload-area__icon { font-size: 28px; margin-bottom: 6px; }
+  .upload-area__text { font-size: 14px; font-weight: 600; color: var(--text); }
+  .upload-area__sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .upload-area input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+
+  .upload-preview {
+    display: none; margin-top: 10px; position: relative; border-radius: 6px; overflow: hidden;
+  }
+  .upload-preview img { width: 100%; max-height: 200px; object-fit: cover; display: block; }
+  .upload-preview__remove {
+    position: absolute; top: 6px; right: 6px; width: 28px; height: 28px;
+    border-radius: 50%; background: rgba(0,0,0,0.7); color: #fff; border: none;
+    cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center;
+  }
+
+  .upload-progress { display: none; margin-top: 10px; }
+  .upload-progress__bar { height: 4px; background: #eee; border-radius: 2px; overflow: hidden; }
+  .upload-progress__fill { height: 100%; background: var(--brand-accent); border-radius: 2px; width: 0%; transition: width 0.3s; }
+  .upload-progress__text { font-size: 12px; color: var(--text-muted); margin-top: 4px; font-family: var(--mono); }
+
+  .video-help { font-size: 12px; color: var(--text-muted); margin-top: 6px; line-height: 1.5; }
+  .video-help code { background: #f0f0f0; padding: 1px 5px; border-radius: 3px; font-family: var(--mono); font-size: 11px; }
+  .video-preview { margin-top: 10px; display: none; }
+  .video-preview__badge {
+    display: inline-flex; align-items: center; gap: 5px; padding: 6px 10px;
+    font-size: 12px; font-weight: 600; border-radius: 4px;
+  }
+  .video-preview__badge--youtube { background: #fee2e2; color: #dc2626; }
+  .video-preview__badge--twitter { background: #e0f2fe; color: #0284c7; }
+  .video-preview__badge--facebook { background: #dbeafe; color: #2563eb; }
+  .video-preview__badge--unknown { background: #f0f0f0; color: #666; }
+
+  .submit-btn {
+    width: 100%; padding: 14px; background: var(--brand-accent); color: #fff;
+    border: none; border-radius: 6px; font-family: var(--font); font-size: 16px;
+    font-weight: 700; cursor: pointer; transition: all 0.2s;
+  }
+  .submit-btn:hover { background: #a5311f; }
+  .submit-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+  .submit-btn--success { background: #27ae60 !important; }
+
+  .toast {
+    position: fixed; bottom: 20px; left: 50%;
+    transform: translateX(-50%) translateY(100px); background: var(--text);
+    color: #fff; padding: 12px 24px; border-radius: 8px; font-size: 14px;
+    font-weight: 600; opacity: 0; transition: all 0.3s; z-index: 1000;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+  .toast--error { background: var(--brand-accent); }
+
+  .recent-card {
+    background: var(--card-bg); border-radius: 8px;
+    border: 1px solid var(--border); padding: 16px; margin-bottom: 12px;
+  }
+  .recent-card h2 { font-size: 14px; font-weight: 700; margin-bottom: 12px; }
+  .recent-post { padding: 10px 0; border-bottom: 1px solid #eee; font-size: 14px; line-height: 1.45; }
+  .recent-post:last-child { border-bottom: none; padding-bottom: 0; }
+  .recent-post__time { font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--text-muted); margin-right: 6px; }
+  .recent-post__type { display: inline-block; font-size: 10px; font-weight: 700; font-family: var(--mono); padding: 1px 6px; border-radius: 3px; margin-right: 6px; text-transform: uppercase; }
+  .recent-post__type--goal { background: #fef3cd; color: #856404; }
+  .recent-post__type--alert { background: #f8d7da; color: #721c24; }
+  .recent-post__type--text { background: #eee; color: #555; }
+
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @media (max-width: 400px) { .type-btn { font-size: 12px; padding: 8px 6px; } }
+</style>
+</head>
+<body>
+
+<div class="admin">
+  <div class="admin-header">
+    <h1>📡 Live Blog</h1>
+    <span class="admin-header__badge">ADMIN</span>
+  </div>
+
+  <!-- Settings -->
+  <details class="settings-card" id="settingsPanel">
+    <summary>⚙️ Connection Settings</summary>
+    <div class="settings-card__inner">
+      <div class="field">
+        <label>Apps Script URL</label>
+        <input type="url" id="apiUrl" placeholder="https://script.google.com/macros/s/...">
+      </div>
+      <div class="field">
+        <label>Event ID</label>
+        <input type="text" id="eventId" placeholder="e.g. a55-ewloe-2025-02-25">
+        <div style="font-size:12px; color:#999; margin-top:4px;">Groups posts together. Use the same ID in your embed URL.</div>
+      </div>
+      <div class="field">
+        <label>Cloudinary Cloud Name</label>
+        <input type="text" id="cloudinaryName" placeholder="e.g. dxyz1234">
+        <div style="font-size:12px; color:#999; margin-top:4px;">
+          Free at <a href="https://cloudinary.com/users/register_free" target="_blank" style="color: var(--brand-accent);">cloudinary.com</a>. 
+          Find your cloud name in Dashboard → Programmable Media.
+        </div>
+      </div>
+      <div class="field">
+        <label>Cloudinary Upload Preset</label>
+        <input type="text" id="cloudinaryPreset" placeholder="e.g. liveblog_unsigned">
+        <div style="font-size:12px; color:#999; margin-top:4px;">
+          Create an unsigned upload preset in Settings → Upload → Upload presets.
+        </div>
+      </div>
+      <div class="field">
+        <label>Your Name</label>
+        <input type="text" id="authorName" placeholder="Jonathan">
+      </div>
+      <div class="field">
+        <label>Your Role</label>
+        <input type="text" id="authorRole" placeholder="Deeside.com">
+      </div>
+      <button onclick="saveSettings()" style="
+        padding: 10px 20px; background: var(--text); color: #fff;
+        border: none; border-radius: 6px; font-weight: 700;
+        font-family: var(--font); cursor: pointer; font-size: 14px;
+      ">Save Settings</button>
+    </div>
+  </details>
+
+  <!-- Compose -->
+  <div class="compose-card">
+    <div class="type-selector">
+      <button class="type-btn active" onclick="setType('text', this)"><span class="type-icon">📝</span> Update</button>
+      <button class="type-btn" onclick="setType('alert', this)"><span class="type-icon">🔴</span> Alert</button>
+      <button class="type-btn" onclick="setType('goal', this)"><span class="type-icon">⚽</span> Goal</button>
+    </div>
+
+    <div class="field field--optional" id="headlineField" style="display:none;">
+      <label>Headline</label>
+      <input type="text" id="headline" placeholder="BREAKING: Major incident on A55">
+    </div>
+
+    <div class="field field--optional">
+      <label>Context / Match</label>
+      <input type="text" id="match" placeholder="e.g. A55 Incident — Ewloe">
+    </div>
+
+    <div class="field">
+      <label>Update</label>
+      <textarea id="body" placeholder="Write your update here...&#10;&#10;Use line breaks for new paragraphs."></textarea>
+    </div>
+
+    <!-- Media Section -->
+    <div class="media-section">
+      <div class="media-section__header">
+        <button class="media-tab active" onclick="switchMediaTab('image', this)">📷 Image</button>
+        <button class="media-tab" onclick="switchMediaTab('video', this)">🎬 Video</button>
+      </div>
+
+      <!-- Image Panel -->
+      <div class="media-panel active" id="imagePanel">
+        <div class="upload-area" id="uploadArea">
+          <input type="file" id="fileInput" accept="image/*" onchange="handleFileSelect(event)">
+          <div class="upload-area__icon">📸</div>
+          <div class="upload-area__text">Tap to take a photo or choose from gallery</div>
+          <div class="upload-area__sub">JPG, PNG up to 10MB</div>
+        </div>
+
+        <div class="upload-progress" id="uploadProgress">
+          <div class="upload-progress__bar"><div class="upload-progress__fill" id="uploadFill"></div></div>
+          <div class="upload-progress__text" id="uploadText">Uploading...</div>
+        </div>
+
+        <div class="upload-preview" id="uploadPreview">
+          <img id="previewImg" src="" alt="Preview">
+          <button class="upload-preview__remove" onclick="clearUpload()" title="Remove">✕</button>
+        </div>
+
+        <div style="text-align:center; padding:10px 0 6px; font-size:12px; color:#bbb; font-weight:600;">— or paste a URL —</div>
+
+        <div class="field field--optional" style="margin-bottom:8px;">
+          <input type="url" id="imageUrl" placeholder="https://example.com/photo.jpg" oninput="onImageUrlInput()">
+        </div>
+
+        <div class="field field--optional" id="imageCreditField" style="display:none;">
+          <label>Image Credit</label>
+          <input type="text" id="imageCredit" placeholder="e.g. North Wales Police">
+        </div>
+      </div>
+
+      <!-- Video Panel -->
+      <div class="media-panel" id="videoPanel">
+        <div class="field field--optional" style="margin-bottom:4px;">
+          <label>Video URL</label>
+          <input type="url" id="videoUrl" placeholder="Paste YouTube, X/Twitter, or Facebook video URL" oninput="onVideoUrlInput()">
+        </div>
+        <div class="video-help">
+          Supported: <code>youtube.com</code> <code>youtu.be</code> <code>x.com</code> <code>twitter.com</code> <code>facebook.com</code>
+        </div>
+        <div class="video-preview" id="videoPreview"></div>
+      </div>
+    </div>
+
+    <button class="submit-btn" id="submitBtn" onclick="publishPost()">Publish Update</button>
+  </div>
+
+  <div class="recent-card" id="recentCard" style="display:none;">
+    <h2>Recent Posts</h2>
+    <div id="recentPosts"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  let currentType = 'text';
+  let uploadedImageUrl = '';
+  let settings = { apiUrl:'', eventId:'', authorName:'', authorRole:'Deeside.com', cloudinaryName:'', cloudinaryPreset:'' };
+
+  function init() {
+    try {
+      const saved = JSON.parse(localStorage.getItem('liveblog_admin') || '{}');
+      if (saved.apiUrl) settings = { ...settings, ...saved };
+      document.getElementById('apiUrl').value = settings.apiUrl;
+      document.getElementById('eventId').value = settings.eventId;
+      document.getElementById('authorName').value = settings.authorName;
+      document.getElementById('authorRole').value = settings.authorRole;
+      document.getElementById('cloudinaryName').value = settings.cloudinaryName || '';
+      document.getElementById('cloudinaryPreset').value = settings.cloudinaryPreset || '';
+      if (settings.apiUrl) {
+        document.getElementById('settingsPanel').removeAttribute('open');
+        loadRecentPosts();
+      } else {
+        document.getElementById('settingsPanel').setAttribute('open', '');
+      }
+    } catch(e) {}
+  }
+
+  function saveSettings() {
+    settings.apiUrl = document.getElementById('apiUrl').value.trim();
+    settings.eventId = document.getElementById('eventId').value.trim();
+    settings.authorName = document.getElementById('authorName').value.trim();
+    settings.authorRole = document.getElementById('authorRole').value.trim();
+    settings.cloudinaryName = document.getElementById('cloudinaryName').value.trim();
+    settings.cloudinaryPreset = document.getElementById('cloudinaryPreset').value.trim();
+    localStorage.setItem('liveblog_admin', JSON.stringify(settings));
+    document.getElementById('settingsPanel').removeAttribute('open');
+    showToast('Settings saved ✓');
+    loadRecentPosts();
+  }
+
+  function setType(type, btn) {
+    currentType = type;
+    document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('headlineField').style.display = (type === 'alert' || type === 'goal') ? 'block' : 'none';
+  }
+
+  function switchMediaTab(tab, btn) {
+    document.querySelectorAll('.media-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.media-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(tab + 'Panel').classList.add('active');
+  }
+
+  // ============================================================
+  // CLOUDINARY UPLOAD
+  // ============================================================
+  async function handleFileSelect(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!settings.cloudinaryName || !settings.cloudinaryPreset) {
+      showToast('Set your Cloudinary details in Connection Settings first', true);
+      document.getElementById('settingsPanel').setAttribute('open', '');
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      showToast('Image too large — max 10MB', true);
+      return;
+    }
+
+    const progress = document.getElementById('uploadProgress');
+    const fill = document.getElementById('uploadFill');
+    const text = document.getElementById('uploadText');
+    progress.style.display = 'block';
+    document.getElementById('uploadArea').style.display = 'none';
+    fill.style.width = '10%';
+    text.textContent = 'Uploading...';
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', settings.cloudinaryPreset);
+      formData.append('folder', 'liveblog');
+
+      const xhr = new XMLHttpRequest();
+      xhr.upload.addEventListener('progress', (evt) => {
+        if (evt.lengthComputable) {
+          const pct = Math.round((evt.loaded / evt.total) * 100);
+          fill.style.width = pct + '%';
+          text.textContent = `Uploading... ${pct}%`;
+        }
+      });
+
+      const result = await new Promise((resolve, reject) => {
+        xhr.onload = () => xhr.status >= 200 && xhr.status < 300 ? resolve(JSON.parse(xhr.responseText)) : reject(new Error('Upload failed'));
+        xhr.onerror = () => reject(new Error('Upload failed'));
+        xhr.open('POST', `https://api.cloudinary.com/v1_1/${settings.cloudinaryName}/image/upload`);
+        xhr.send(formData);
+      });
+
+      uploadedImageUrl = result.secure_url;
+      document.getElementById('imageUrl').value = result.secure_url;
+      fill.style.width = '100%';
+      text.textContent = 'Uploaded ✓';
+      document.getElementById('previewImg').src = result.secure_url;
+      document.getElementById('uploadPreview').style.display = 'block';
+      document.getElementById('imageCreditField').style.display = 'block';
+      setTimeout(() => { progress.style.display = 'none'; }, 1500);
+      showToast('Image uploaded ✓');
+    } catch (err) {
+      console.error('Upload error:', err);
+      fill.style.width = '0%';
+      text.textContent = 'Upload failed';
+      document.getElementById('uploadArea').style.display = 'block';
+      setTimeout(() => { progress.style.display = 'none'; }, 2000);
+      showToast('Image upload failed — check Cloudinary settings', true);
+    }
+    e.target.value = '';
+  }
+
+  function clearUpload() {
+    uploadedImageUrl = '';
+    document.getElementById('imageUrl').value = '';
+    document.getElementById('uploadPreview').style.display = 'none';
+    document.getElementById('uploadArea').style.display = 'block';
+    document.getElementById('imageCreditField').style.display = 'none';
+  }
+
+  function onImageUrlInput() {
+    const val = document.getElementById('imageUrl').value.trim();
+    document.getElementById('imageCreditField').style.display = val ? 'block' : 'none';
+    if (val && !uploadedImageUrl) {
+      document.getElementById('previewImg').src = val;
+      document.getElementById('uploadPreview').style.display = 'block';
+      document.getElementById('uploadArea').style.display = 'none';
+    } else if (!val) {
+      document.getElementById('uploadPreview').style.display = 'none';
+      document.getElementById('uploadArea').style.display = 'block';
+    }
+  }
+
+  // ============================================================
+  // VIDEO DETECTION
+  // ============================================================
+  function detectVideoPlatform(url) {
+    if (!url) return null;
+    if (url.includes('youtube.com/watch') || url.includes('youtu.be/') || url.includes('youtube.com/shorts')) return 'youtube';
+    if (url.includes('x.com/') || url.includes('twitter.com/')) return 'twitter';
+    if (url.includes('facebook.com/') || url.includes('fb.watch')) return 'facebook';
+    return 'unknown';
+  }
+
+  function onVideoUrlInput() {
+    const url = document.getElementById('videoUrl').value.trim();
+    const preview = document.getElementById('videoPreview');
+    if (!url) { preview.style.display = 'none'; return; }
+    const platform = detectVideoPlatform(url);
+    const labels = {
+      youtube: { icon: '▶', label: 'YouTube video detected', cls: 'youtube' },
+      twitter: { icon: '𝕏', label: 'X/Twitter post detected', cls: 'twitter' },
+      facebook: { icon: 'f', label: 'Facebook video detected', cls: 'facebook' },
+      unknown: { icon: '🔗', label: 'Link added — may not embed', cls: 'unknown' },
+    };
+    const info = labels[platform] || labels.unknown;
+    preview.innerHTML = `<div class="video-preview__badge video-preview__badge--${info.cls}">${info.icon} ${info.label}</div>`;
+    preview.style.display = 'block';
+  }
+
+  // ============================================================
+  // PUBLISH
+  // ============================================================
+  async function publishPost() {
+    const btn = document.getElementById('submitBtn');
+    const body = document.getElementById('body').value.trim();
+    if (!body) { showToast('Write something first!', true); document.getElementById('body').focus(); return; }
+    if (!settings.apiUrl) { showToast('Set your Apps Script URL first', true); document.getElementById('settingsPanel').setAttribute('open', ''); return; }
+
+    btn.disabled = true;
+    btn.textContent = 'Publishing...';
+
+    const payload = {
+      type: currentType,
+      event_id: settings.eventId,
+      headline: document.getElementById('headline').value.trim(),
+      match: document.getElementById('match').value.trim(),
+      body: body,
+      author_name: settings.authorName,
+      author_role: settings.authorRole,
+      image_url: document.getElementById('imageUrl').value.trim(),
+      image_credit: document.getElementById('imageCredit').value.trim(),
+      video_url: document.getElementById('videoUrl').value.trim(),
+    };
+
+    try {
+      await fetch(settings.apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        mode: 'no-cors',
+      });
+
+      btn.textContent = '✓ Published!';
+      btn.classList.add('submit-btn--success');
+      showToast('Update published ✓');
+
+      // Clear form
+      document.getElementById('body').value = '';
+      document.getElementById('headline').value = '';
+      document.getElementById('imageUrl').value = '';
+      document.getElementById('imageCredit').value = '';
+      document.getElementById('videoUrl').value = '';
+      document.getElementById('imageCreditField').style.display = 'none';
+      document.getElementById('videoPreview').style.display = 'none';
+      document.getElementById('uploadPreview').style.display = 'none';
+      document.getElementById('uploadArea').style.display = 'block';
+      uploadedImageUrl = '';
+
+      addToRecentList(payload);
+      setTimeout(() => { btn.textContent = 'Publish Update'; btn.classList.remove('submit-btn--success'); btn.disabled = false; }, 2000);
+    } catch (err) {
+      console.error('Publish failed:', err);
+      showToast('Failed to publish — check your API URL', true);
+      btn.textContent = 'Publish Update';
+      btn.disabled = false;
+    }
+  }
+
+  // ============================================================
+  // RECENT POSTS
+  // ============================================================
+  async function loadRecentPosts() {
+    if (!settings.apiUrl) return;
+    try {
+      let url = settings.apiUrl;
+      if (settings.eventId) url += `?event_id=${encodeURIComponent(settings.eventId)}`;
+      const response = await fetch(url);
+      const data = await response.json();
+      const posts = (data.posts || []).slice(0, 8);
+      if (posts.length > 0) renderRecentPosts(posts);
+    } catch(e) { console.log('Could not load recent posts'); }
+  }
+
+  function renderRecentPosts(posts) {
+    document.getElementById('recentCard').style.display = 'block';
+    document.getElementById('recentPosts').innerHTML = posts.map(p => {
+      const tc = p.type === 'goal' ? 'goal' : p.type === 'alert' ? 'alert' : 'text';
+      const preview = (p.body||'').split('\n')[0].slice(0,80) + ((p.body||'').length > 80 ? '...' : '');
+      const media = []; if (p.image_url) media.push('📷'); if (p.video_url) media.push('🎬');
+      return `<div class="recent-post"><span class="recent-post__time">${p.time||''}</span><span class="recent-post__type recent-post__type--${tc}">${p.type||'text'}</span>${media.length?media.join(' ')+' ':''}${p.headline?`<strong>${escapeHtml(p.headline)}</strong> — `:''}${escapeHtml(preview)}</div>`;
+    }).join('');
+  }
+
+  function addToRecentList(payload) {
+    document.getElementById('recentCard').style.display = 'block';
+    const tc = payload.type === 'goal' ? 'goal' : payload.type === 'alert' ? 'alert' : 'text';
+    const preview = payload.body.split('\n')[0].slice(0,80);
+    const media = []; if (payload.image_url) media.push('📷'); if (payload.video_url) media.push('🎬');
+    document.getElementById('recentPosts').insertAdjacentHTML('afterbegin',
+      `<div class="recent-post" style="animation:fadeIn 0.3s ease-out;"><span class="recent-post__time">${new Date().toTimeString().slice(0,5)}</span><span class="recent-post__type recent-post__type--${tc}">${payload.type}</span>${media.length?media.join(' ')+' ':''}${payload.headline?`<strong>${escapeHtml(payload.headline)}</strong> — `:''}${escapeHtml(preview)}</div>`
+    );
+  }
+
+  function showToast(msg, isError = false) {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.className = `toast show ${isError ? 'toast--error' : ''}`;
+    setTimeout(() => toast.className = 'toast', 3000);
+  }
+
+  function escapeHtml(str) { const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
+
+  document.addEventListener('keydown', function(e) {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); publishPost(); }
+  });
+
+  init();
+</script>
+</body>
+</html>

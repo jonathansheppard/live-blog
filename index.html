@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Live Blog — Deeside.com</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Lora:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --brand-primary: #1a1a1a;
+    --brand-accent: #c0392b;
+    --color-goal: #d4a017;
+    --color-key: #c0392b;
+    --color-text-border: #ddd;
+    --bg-page: #ffffff;
+    --bg-goal: rgba(212, 160, 23, 0.05);
+    --bg-key: rgba(192, 57, 43, 0.03);
+    --text-primary: #1a1a1a;
+    --text-secondary: #555;
+    --text-muted: #888;
+    --border-light: #e8e8e8;
+    --font-display: 'DM Sans', -apple-system, sans-serif;
+    --font-body: 'Lora', Georgia, serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--font-display);
+    background: var(--bg-page);
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .liveblog { max-width: 620px; margin: 0 auto; }
+
+  /* Header */
+  .liveblog-header { padding: 20px 20px 16px; border-bottom: 3px solid var(--brand-primary); }
+  .liveblog-header__top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+
+  .live-badge {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: var(--brand-accent); color: #fff; padding: 4px 13px; border-radius: 3px;
+    font-size: 11px; font-weight: 800; font-family: var(--font-mono);
+    letter-spacing: 1.2px; text-transform: uppercase;
+  }
+  .live-badge__dot { width: 8px; height: 8px; border-radius: 50%; background: #fff; animation: pulse 1.5s ease-in-out infinite; }
+  .live-badge--ended { background: #666; }
+  .live-badge--ended .live-badge__dot { display: none; }
+
+  .post-count { font-size: 12px; color: var(--text-muted); font-family: var(--font-mono); font-weight: 500; }
+
+  .liveblog-header h1 { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; line-height: 1.15; color: var(--text-primary); }
+  .liveblog-header__sub { font-size: 13px; color: var(--text-muted); margin-top: 4px; line-height: 1.4; }
+
+  /* New post bar */
+  .new-posts-bar {
+    position: sticky; top: 0; z-index: 100; background: var(--brand-primary);
+    color: #fff; text-align: center; padding: 10px; font-size: 13px; font-weight: 600;
+    cursor: pointer; display: none; animation: slideDown 0.3s ease-out;
+  }
+  .new-posts-bar:hover { background: #333; }
+
+  /* Post card */
+  .post { border-bottom: 1px solid var(--border-light); animation: fadeIn 0.4s ease-out; }
+  .post--new { animation: slideIn 0.5s ease-out; }
+  .post--goal { border-left: 3px solid var(--color-goal); background: var(--bg-goal); }
+  .post--alert { border-left: 3px solid var(--color-key); background: var(--bg-key); }
+  .post--text { border-left: 3px solid var(--color-text-border); }
+  .post__inner { padding: 16px 20px; }
+
+  .post__time {
+    display: inline-block; padding: 2px 10px; font-size: 12px; font-weight: 700;
+    font-family: var(--font-mono); letter-spacing: 0.5px; border-radius: 3px;
+    line-height: 20px; margin-bottom: 10px;
+  }
+  .post--text .post__time { background: #f0f0f0; color: var(--text-secondary); }
+  .post--goal .post__time { background: var(--color-goal); color: #fff; }
+  .post--alert .post__time { background: var(--color-key); color: #fff; }
+
+  .post__match { font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 8px; }
+
+  .post__headline-row { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+  .post__icon { font-size: 22px; flex-shrink: 0; }
+  .post__headline { font-size: 18px; font-weight: 800; letter-spacing: -0.3px; line-height: 1.2; color: var(--text-primary); }
+
+  .post__image-wrap { position: relative; margin: 12px 0; border-radius: 4px; overflow: hidden; }
+  .post__image { width: 100%; height: 220px; object-fit: cover; display: block; }
+  .post__image-credit {
+    position: absolute; bottom: 8px; left: 8px; background: rgba(0,0,0,0.75);
+    color: #fff; font-size: 10px; font-weight: 700; padding: 3px 8px;
+    font-family: var(--font-mono); letter-spacing: 0.5px;
+  }
+
+  /* Video embed */
+  .post__video-wrap {
+    position: relative; margin: 12px 0; border-radius: 4px; overflow: hidden;
+    background: #000;
+  }
+  .post__video-wrap iframe {
+    width: 100%; height: 315px; border: none; display: block;
+  }
+  .post__video-wrap .twitter-embed {
+    background: #fff; border-radius: 4px; overflow: hidden;
+  }
+
+  .post__author { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .post__avatar {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: linear-gradient(135deg, #2c2c2c, #555);
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-weight: 700; font-size: 13px; flex-shrink: 0;
+  }
+  .post__author-name { font-weight: 700; font-size: 14px; color: var(--text-primary); }
+  .post__author-role { font-size: 12px; color: var(--text-muted); }
+
+  .post__body { font-family: var(--font-body); font-size: 15px; line-height: 1.7; color: #2a2a2a; }
+  .post__body p { margin-bottom: 10px; }
+  .post__body p:last-child { margin-bottom: 0; }
+
+  .post__engagement {
+    display: flex; justify-content: space-between; align-items: center;
+    padding-top: 12px; margin-top: 12px; border-top: 1px solid #eee;
+  }
+  .post__engagement-left { display: flex; gap: 16px; }
+  .post__engagement button, .post__engagement span {
+    background: none; border: none; cursor: pointer; display: flex; align-items: center;
+    gap: 5px; color: var(--text-muted); font-size: 13px; font-family: var(--font-display);
+    font-weight: 500; transition: color 0.2s;
+  }
+  .post__engagement button:hover { color: var(--text-primary); }
+  .post__engagement .liked { color: var(--color-goal); }
+
+  .liveblog-footer { padding: 24px; text-align: center; font-size: 12px; color: #bbb; }
+  .liveblog-status { padding: 40px 20px; text-align: center; color: var(--text-muted); font-size: 14px; }
+  .liveblog-status__spinner {
+    width: 24px; height: 24px; border: 3px solid #eee; border-top-color: var(--brand-accent);
+    border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 12px;
+  }
+
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes slideIn { from { opacity: 0; transform: translateY(-16px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes slideDown { from { transform: translateY(-100%); } to { transform: translateY(0); } }
+
+  @media (max-width: 480px) {
+    .liveblog-header h1 { font-size: 20px; }
+    .post__headline { font-size: 16px; }
+    .post__image { height: 180px; }
+    .post__video-wrap iframe { height: 240px; }
+    .post__inner { padding: 14px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="liveblog" id="liveblog">
+  <div class="liveblog-header">
+    <div class="liveblog-header__top">
+      <div class="live-badge" id="liveBadge"><span class="live-badge__dot"></span>LIVE</div>
+      <span class="post-count" id="postCount"></span>
+    </div>
+    <h1 id="blogTitle">Live Updates</h1>
+    <p class="liveblog-header__sub" id="blogSubtitle">Follow all the action as it happens</p>
+  </div>
+
+  <div class="new-posts-bar" id="newPostsBar" onclick="showNewPosts()">↑ New updates available — click to load</div>
+
+  <div id="postsContainer">
+    <div class="liveblog-status" id="loadingState">
+      <div class="liveblog-status__spinner"></div>
+      Connecting to live feed...
+    </div>
+  </div>
+
+  <div class="liveblog-footer">Powered by Deeside.com</div>
+</div>
+
+<script>
+// ============================================================
+// CONFIGURATION
+// ============================================================
+const CONFIG = {
+  API_URL: 'YOUR_APPS_SCRIPT_URL_HERE',
+  EVENT_ID: '',
+  POLL_INTERVAL: 15000,
+  TITLE: 'Live Updates',
+  SUBTITLE: 'Follow all the action as it happens',
+  ENDED: false,
+};
+
+// URL parameter overrides
+const params = new URLSearchParams(window.location.search);
+if (params.get('event_id')) CONFIG.EVENT_ID = params.get('event_id');
+if (params.get('title')) CONFIG.TITLE = params.get('title');
+if (params.get('subtitle')) CONFIG.SUBTITLE = params.get('subtitle');
+if (params.get('api')) CONFIG.API_URL = params.get('api');
+if (params.get('ended') === 'true') CONFIG.ENDED = true;
+
+document.getElementById('blogTitle').textContent = CONFIG.TITLE;
+document.getElementById('blogSubtitle').textContent = CONFIG.SUBTITLE;
+if (CONFIG.ENDED) {
+  const badge = document.getElementById('liveBadge');
+  badge.classList.add('live-badge--ended');
+  badge.innerHTML = 'ENDED';
+}
+
+// ============================================================
+// STATE
+// ============================================================
+let allPosts = [];
+let pendingPosts = [];
+let lastKnownCount = 0;
+let isFirstLoad = true;
+
+// ============================================================
+// FETCH
+// ============================================================
+async function fetchPosts() {
+  try {
+    let url = CONFIG.API_URL;
+    if (CONFIG.EVENT_ID) url += `?event_id=${encodeURIComponent(CONFIG.EVENT_ID)}`;
+    const response = await fetch(url);
+    const data = await response.json();
+    return data.posts || [];
+  } catch (err) {
+    console.error('Failed to fetch posts:', err);
+    return null;
+  }
+}
+
+// ============================================================
+// VIDEO EMBED HELPERS
+// ============================================================
+function getYouTubeId(url) {
+  const match = url.match(/(?:youtube\.com\/(?:watch\?v=|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+  return match ? match[1] : null;
+}
+
+function buildVideoEmbed(videoUrl) {
+  if (!videoUrl) return '';
+
+  // YouTube
+  const ytId = getYouTubeId(videoUrl);
+  if (ytId) {
+    return `
+      <div class="post__video-wrap">
+        <iframe src="https://www.youtube.com/embed/${ytId}" 
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+          allowfullscreen loading="lazy"></iframe>
+      </div>`;
+  }
+
+  // X / Twitter — use embedded tweet
+  const twitterMatch = videoUrl.match(/(?:twitter\.com|x\.com)\/\w+\/status\/(\d+)/);
+  if (twitterMatch) {
+    const tweetId = twitterMatch[1];
+    return `
+      <div class="post__video-wrap twitter-embed" id="tweet-${tweetId}">
+        <blockquote class="twitter-tweet" data-conversation="none">
+          <a href="${escapeHtml(videoUrl)}"></a>
+        </blockquote>
+      </div>`;
+  }
+
+  // Facebook
+  if (videoUrl.includes('facebook.com') || videoUrl.includes('fb.watch')) {
+    const encodedUrl = encodeURIComponent(videoUrl);
+    return `
+      <div class="post__video-wrap">
+        <iframe src="https://www.facebook.com/plugins/video.php?href=${encodedUrl}&show_text=false&width=560" 
+          allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share" 
+          allowfullscreen loading="lazy"></iframe>
+      </div>`;
+  }
+
+  // Fallback — link
+  return `
+    <div style="margin: 12px 0; padding: 12px; background: #f5f5f5; border-radius: 4px;">
+      <a href="${escapeHtml(videoUrl)}" target="_blank" rel="noopener" 
+        style="color: var(--brand-accent); font-weight: 600; font-size: 14px; text-decoration: none;">
+        🎬 Watch video ↗
+      </a>
+    </div>`;
+}
+
+// Load Twitter widget script once if needed
+let twitterScriptLoaded = false;
+function loadTwitterScript() {
+  if (twitterScriptLoaded) {
+    if (window.twttr && window.twttr.widgets) window.twttr.widgets.load();
+    return;
+  }
+  twitterScriptLoaded = true;
+  const script = document.createElement('script');
+  script.src = 'https://platform.twitter.com/widgets.js';
+  script.async = true;
+  script.charset = 'utf-8';
+  document.head.appendChild(script);
+}
+
+// ============================================================
+// RENDER
+// ============================================================
+function getInitials(name) {
+  return name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+}
+
+function renderPost(post, isNew = false) {
+  const typeClass = post.type === 'goal' ? 'post--goal' : 
+                    post.type === 'alert' || post.type === 'key' ? 'post--alert' : 'post--text';
+  const icon = post.type === 'goal' ? '⚽' : 
+               post.type === 'alert' || post.type === 'key' ? '🔴' : '';
+
+  const bodyHtml = (post.body || '').split('\n').filter(p => p.trim()).map(p => `<p>${escapeHtml(p)}</p>`).join('');
+
+  let authorHtml = '';
+  if (post.author_name) {
+    authorHtml = `
+      <div class="post__author">
+        <div class="post__avatar">${getInitials(post.author_name)}</div>
+        <div>
+          <div class="post__author-name">${escapeHtml(post.author_name)}</div>
+          ${post.author_role ? `<div class="post__author-role">${escapeHtml(post.author_role)}</div>` : ''}
+        </div>
+      </div>`;
+  }
+
+  let imageHtml = '';
+  if (post.image_url) {
+    imageHtml = `
+      <div class="post__image-wrap">
+        <img class="post__image" src="${escapeHtml(post.image_url)}" alt="" loading="lazy">
+        ${post.image_credit ? `<span class="post__image-credit">${escapeHtml(post.image_credit)}</span>` : ''}
+      </div>`;
+  }
+
+  // Video embed
+  const videoHtml = buildVideoEmbed(post.video_url);
+
+  let headlineHtml = '';
+  if (post.headline) {
+    headlineHtml = `
+      <div class="post__headline-row">
+        ${icon ? `<span class="post__icon">${icon}</span>` : ''}
+        <div><div class="post__headline">${escapeHtml(post.headline)}</div></div>
+      </div>`;
+  }
+
+  let matchHtml = '';
+  if (post.match && !post.headline) {
+    matchHtml = `<div class="post__match">${escapeHtml(post.match)}</div>`;
+  }
+
+  return `
+    <article class="post ${typeClass} ${isNew ? 'post--new' : ''}" data-id="${post.id}">
+      <div class="post__inner">
+        <div class="post__time">${escapeHtml(post.time || '')}</div>
+        ${matchHtml}
+        ${headlineHtml}
+        ${imageHtml}
+        ${videoHtml}
+        ${authorHtml}
+        <div class="post__body">${bodyHtml}</div>
+        <div class="post__engagement">
+          <div class="post__engagement-left">
+            <button onclick="toggleLike(this)" title="Like">👍 <span>0</span></button>
+            <span>💬 0</span>
+          </div>
+          <button title="Share">↗ Share</button>
+        </div>
+      </div>
+    </article>`;
+}
+
+function renderAllPosts(posts) {
+  const container = document.getElementById('postsContainer');
+  if (posts.length === 0) {
+    container.innerHTML = `<div class="liveblog-status">No updates yet — check back soon.</div>`;
+    return;
+  }
+  container.innerHTML = posts.map(p => renderPost(p)).join('');
+  document.getElementById('postCount').textContent = `${posts.length} updates`;
+
+  // Load Twitter embeds if any tweets present
+  if (posts.some(p => p.video_url && (p.video_url.includes('twitter.com') || p.video_url.includes('x.com')))) {
+    loadTwitterScript();
+  }
+}
+
+function showNewPosts() {
+  allPosts = [...pendingPosts, ...allPosts];
+  pendingPosts = [];
+  renderAllPosts(allPosts);
+  document.getElementById('newPostsBar').style.display = 'none';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ============================================================
+// POLLING
+// ============================================================
+async function poll() {
+  const posts = await fetchPosts();
+  if (!posts) return;
+
+  if (isFirstLoad) {
+    allPosts = posts;
+    lastKnownCount = posts.length;
+    renderAllPosts(posts);
+    document.getElementById('loadingState')?.remove();
+    isFirstLoad = false;
+    return;
+  }
+
+  if (posts.length > lastKnownCount) {
+    const newCount = posts.length - lastKnownCount;
+    pendingPosts = posts.slice(0, newCount);
+    lastKnownCount = posts.length;
+    const bar = document.getElementById('newPostsBar');
+    bar.textContent = `↑ ${newCount} new update${newCount > 1 ? 's' : ''} — click to load`;
+    bar.style.display = 'block';
+  }
+}
+
+function startPolling() {
+  poll();
+  setInterval(poll, CONFIG.POLL_INTERVAL);
+}
+
+// ============================================================
+// UTILITIES
+// ============================================================
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function toggleLike(btn) {
+  const isLiked = btn.classList.toggle('liked');
+  btn.querySelector('span').textContent = isLiked ? '1' : '0';
+}
+
+// ============================================================
+// DEMO MODE
+// ============================================================
+function loadDemoData() {
+  const demo = [
+    {
+      id: 1, time: '14:32', type: 'alert',
+      headline: 'BREAKING: A55 closed in both directions near Ewloe',
+      body: 'Emergency services are at the scene of a multi-vehicle collision on the A55 near junction 33A at Ewloe.\n\nTraffic Wales has confirmed the road is closed in both directions. Motorists are advised to use alternative routes.',
+      author_name: 'Jonathan', author_role: 'Deeside.com',
+      video_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+    },
+    {
+      id: 2, time: '14:28', type: 'text',
+      body: 'North Wales Police have confirmed they were called at approximately 2:15pm. Ambulance crews are also in attendance. We are awaiting further details on casualties.',
+      author_name: 'Jonathan', author_role: 'Deeside.com',
+    },
+    {
+      id: 3, time: '14:20', type: 'key',
+      headline: 'Traffic building on surrounding roads',
+      body: 'Reports of heavy congestion on the B5125 through Ewloe village as drivers seek alternative routes. Delays also building on the A494 approach to the Ewloe interchange.',
+    },
+    {
+      id: 4, time: '14:15', type: 'text',
+      match: 'A55 Incident — Ewloe',
+      body: 'We are getting initial reports of an incident on the A55 near Ewloe. Emergency services appear to be responding. More details to follow.',
+    },
+  ];
+  allPosts = demo;
+  renderAllPosts(demo);
+  document.getElementById('blogTitle').textContent = 'BREAKING: Major incident on A55 near Ewloe';
+  document.getElementById('blogSubtitle').textContent = 'Live updates on the A55 closure — last updated 14:32 GMT';
+  document.getElementById('postCount').textContent = `${demo.length} updates`;
+}
+
+// ============================================================
+// INIT
+// ============================================================
+if (CONFIG.API_URL === 'YOUR_APPS_SCRIPT_URL_HERE') {
+  document.getElementById('loadingState')?.remove();
+  loadDemoData();
+} else {
+  startPolling();
+}
+</script>
+
+</body>
+</html>
