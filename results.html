@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Senedd 2026 Results — Deeside.com</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --brand-primary: #1a1a1a;
+  --brand-accent: #c0392b;
+  --bg-page: #ffffff;
+  --text-primary: #1a1a1a;
+  --text-secondary: #555;
+  --text-muted: #888;
+  --border-light: #e8e8e8;
+  --bg-empty: #fafafa;
+  --font-display: 'DM Sans', -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: var(--font-display);
+  background: var(--bg-page);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+}
+.results { max-width: 980px; margin: 0 auto; padding: 0; }
+
+/* Header */
+.results-header { padding: 20px 20px 16px; border-bottom: 3px solid var(--brand-primary); }
+.results-header__top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.live-badge {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: var(--brand-accent); color: #fff; padding: 4px 13px; border-radius: 3px;
+  font-size: 11px; font-weight: 800; font-family: var(--font-mono);
+  letter-spacing: 1.2px; text-transform: uppercase;
+}
+.live-badge__dot { width: 8px; height: 8px; border-radius: 50%; background: #fff; animation: pulse 1.5s ease-in-out infinite; }
+.live-badge--ended { background: #666; }
+.live-badge--ended .live-badge__dot { display: none; }
+.last-updated { font-size: 12px; color: var(--text-muted); font-family: var(--font-mono); font-weight: 500; }
+.results-header h1 { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; line-height: 1.15; }
+.results-header__sub { font-size: 13px; color: var(--text-muted); margin-top: 4px; line-height: 1.4; }
+
+/* Card grid */
+.constituencies {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+  gap: 16px;
+  padding: 20px;
+}
+.constituency {
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  overflow: hidden;
+  background: #fff;
+}
+.constituency__head {
+  padding: 14px 16px 12px;
+  border-bottom: 2px solid var(--brand-primary);
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.constituency__name { font-size: 17px; font-weight: 800; letter-spacing: -0.3px; }
+.constituency__progress {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+.constituency__progress--complete { color: #2a8a3a; }
+
+/* Seat row */
+.seat {
+  display: grid;
+  grid-template-columns: 36px 4px 1fr;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #f0f0f0;
+  align-items: center;
+  min-height: 56px;
+  transition: background 0.3s;
+}
+.seat:last-child { border-bottom: none; }
+.seat--declared { background: #fff; }
+.seat--empty { background: var(--bg-empty); }
+.seat--new { animation: slideIn 0.6s ease-out; }
+
+.seat__num {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+  text-align: center;
+  background: #f0f0f0;
+  border-radius: 3px;
+  padding: 4px 0;
+}
+.seat--declared .seat__num { color: var(--text-primary); background: #ececec; }
+
+.seat__bar {
+  width: 4px;
+  height: 36px;
+  border-radius: 2px;
+  background: #ddd;
+}
+
+.seat__main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.seat__top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.seat__party-tag {
+  display: inline-block;
+  padding: 2px 7px;
+  font-size: 10px;
+  font-weight: 800;
+  font-family: var(--font-mono);
+  letter-spacing: 0.6px;
+  border-radius: 3px;
+  background: #444;
+  color: #fff;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+.seat__party-name {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+.seat__candidate {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.2px;
+  word-break: break-word;
+}
+.seat--empty .seat__candidate {
+  color: var(--text-muted);
+  font-weight: 500;
+  font-style: italic;
+  font-size: 13px;
+}
+
+/* Footer */
+.results-footer { padding: 20px; text-align: center; font-size: 12px; color: #bbb; border-top: 1px solid var(--border-light); }
+
+/* Status / loading */
+.results-status {
+  padding: 60px 20px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+.results-status__spinner {
+  width: 24px; height: 24px;
+  border: 3px solid #eee;
+  border-top-color: var(--brand-accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 12px;
+}
+.results-status--error { color: var(--brand-accent); font-weight: 600; }
+
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes slideIn { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: translateX(0); } }
+
+@media (max-width: 480px) {
+  .results-header h1 { font-size: 18px; }
+  .constituencies { grid-template-columns: 1fr; padding: 14px; gap: 12px; }
+  .seat { grid-template-columns: 32px 4px 1fr; gap: 10px; padding: 10px 12px; }
+  .constituency__name { font-size: 15px; }
+}
+</style>
+</head>
+<body>
+
+<div class="results">
+  <div class="results-header">
+    <div class="results-header__top">
+      <div class="live-badge" id="liveBadge"><span class="live-badge__dot"></span>LIVE</div>
+      <span class="last-updated" id="lastUpdated"></span>
+    </div>
+    <h1 id="title">Senedd 2026 — North East Wales</h1>
+    <p class="results-header__sub" id="subtitle">Live results from Clwyd and Fflint Wrecsam</p>
+  </div>
+
+  <div id="container">
+    <div class="results-status" id="loadingState">
+      <div class="results-status__spinner"></div>
+      Loading results...
+    </div>
+  </div>
+
+  <div class="results-footer">Powered by Deeside.com</div>
+</div>
+
+<script>
+// ============================================================
+// CONFIG
+// ============================================================
+const CONFIG = {
+  API_URL: '',
+  POLL_INTERVAL: 90000,   // 90s — playbook recommends 60-120s
+  TITLE: 'Senedd 2026 — North East Wales',
+  SUBTITLE: 'Live results from Clwyd and Fflint Wrecsam',
+  ENDED: false,
+};
+
+// URL parameter overrides
+const params = new URLSearchParams(window.location.search);
+if (params.get('api')) CONFIG.API_URL = params.get('api');
+if (params.get('title')) CONFIG.TITLE = params.get('title');
+if (params.get('subtitle')) CONFIG.SUBTITLE = params.get('subtitle');
+if (params.get('ended') === 'true') CONFIG.ENDED = true;
+
+document.getElementById('title').textContent = CONFIG.TITLE;
+document.getElementById('subtitle').textContent = CONFIG.SUBTITLE;
+if (CONFIG.ENDED) {
+  const badge = document.getElementById('liveBadge');
+  badge.classList.add('live-badge--ended');
+  badge.innerHTML = 'FINAL';
+}
+
+// ============================================================
+// PARTY LOOKUP
+// ============================================================
+const PARTY_COLOURS = {
+  'labour': '#dc241f', 'welsh labour': '#dc241f', 'lab': '#dc241f',
+  'plaid cymru': '#008142', 'plaid': '#008142', 'pc': '#008142',
+  'conservative': '#0087dc', 'conservatives': '#0087dc',
+  'welsh conservative': '#0087dc', 'welsh conservatives': '#0087dc', 'con': '#0087dc',
+  'liberal democrats': '#faa61a', 'liberal democrat': '#faa61a',
+  'lib dem': '#faa61a', 'lib dems': '#faa61a', 'ld': '#faa61a',
+  'reform': '#12b6cf', 'reform uk': '#12b6cf', 'ref': '#12b6cf',
+  'green': '#84b82c', 'green party': '#84b82c', 'welsh greens': '#84b82c', 'grn': '#84b82c',
+  'independent': '#777', 'ind': '#777',
+};
+const PARTY_SHORT = {
+  'labour': 'LAB', 'welsh labour': 'LAB',
+  'plaid cymru': 'PC', 'plaid': 'PC',
+  'conservative': 'CON', 'conservatives': 'CON',
+  'welsh conservative': 'CON', 'welsh conservatives': 'CON',
+  'liberal democrats': 'LD', 'liberal democrat': 'LD',
+  'lib dem': 'LD', 'lib dems': 'LD',
+  'reform': 'REF', 'reform uk': 'REF',
+  'green': 'GRN', 'green party': 'GRN', 'welsh greens': 'GRN',
+  'independent': 'IND',
+};
+function partyColour(p) {
+  if (!p) return '#ddd';
+  return PARTY_COLOURS[p.trim().toLowerCase()] || '#444';
+}
+function partyShort(p) {
+  if (!p) return '';
+  const key = p.trim().toLowerCase();
+  return PARTY_SHORT[key] || p.toUpperCase().slice(0, 4);
+}
+
+// ============================================================
+// FETCH
+// ============================================================
+let abortCtrl = null;
+async function fetchResults() {
+  if (!CONFIG.API_URL) return null;
+  if (abortCtrl) abortCtrl.abort();
+  abortCtrl = new AbortController();
+  try {
+    const res = await fetch(CONFIG.API_URL, { signal: abortCtrl.signal });
+    return await res.json();
+  } catch (err) {
+    if (err.name === 'AbortError') return null;
+    console.error('Fetch failed:', err);
+    return null;
+  }
+}
+
+// ============================================================
+// RENDER
+// ============================================================
+let previousState = {};
+
+function escapeHtml(str) {
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+function renderSeat(seat, constituency) {
+  const key = `${constituency}-${seat.seat}`;
+  const wasDeclared = previousState[key] === true;
+  const isNew = seat.declared && !wasDeclared && previousState[key] !== undefined;
+
+  const colour = seat.declared ? partyColour(seat.party) : '#ddd';
+  const shortTag = seat.declared ? partyShort(seat.party) : '--';
+
+  return `
+    <div class="seat ${seat.declared ? 'seat--declared' : 'seat--empty'} ${isNew ? 'seat--new' : ''}">
+      <div class="seat__num">${escapeHtml(String(seat.seat))}</div>
+      <div class="seat__bar" style="background:${colour};"></div>
+      <div class="seat__main">
+        ${seat.declared ? `
+          <div class="seat__top">
+            <span class="seat__party-tag" style="background:${colour};">${escapeHtml(shortTag)}</span>
+            <span class="seat__party-name">${escapeHtml(seat.party)}</span>
+          </div>
+          <div class="seat__candidate">${escapeHtml(seat.candidate || 'Awaiting candidate name')}</div>
+        ` : `
+          <div class="seat__candidate">Awaiting declaration</div>
+        `}
+      </div>
+    </div>`;
+}
+
+function renderConstituency(name, seats) {
+  const declaredCount = seats.filter(s => s.declared).length;
+  const total = seats.length || 6;
+  const isComplete = declaredCount === total && total > 0;
+  return `
+    <div class="constituency">
+      <div class="constituency__head">
+        <div class="constituency__name">${escapeHtml(name)}</div>
+        <div class="constituency__progress ${isComplete ? 'constituency__progress--complete' : ''}">
+          ${declaredCount} / ${total} declared
+        </div>
+      </div>
+      ${seats.map(s => renderSeat(s, name)).join('')}
+    </div>`;
+}
+
+function renderAll(data) {
+  const container = document.getElementById('container');
+  const constituencies = data.constituencies || {};
+  const names = Object.keys(constituencies);
+  if (names.length === 0) {
+    container.innerHTML = `<div class="results-status">No data yet — check back soon.</div>`;
+    return;
+  }
+  container.innerHTML = `<div class="constituencies">${
+    names.map(name => renderConstituency(name, constituencies[name] || [])).join('')
+  }</div>`;
+
+  // Update last-updated stamp
+  if (data.updated) {
+    const dt = new Date(data.updated);
+    const hh = String(dt.getHours()).padStart(2, '0');
+    const mm = String(dt.getMinutes()).padStart(2, '0');
+    document.getElementById('lastUpdated').textContent = `Updated ${hh}:${mm}`;
+  }
+
+  // Update previousState after render so next poll can detect new declarations
+  const newState = {};
+  names.forEach(name => {
+    (constituencies[name] || []).forEach(s => {
+      newState[`${name}-${s.seat}`] = s.declared;
+    });
+  });
+  previousState = newState;
+}
+
+// ============================================================
+// POLLING
+// ============================================================
+let pollTimer = null;
+
+async function poll() {
+  const data = await fetchResults();
+  if (data) renderAll(data);
+}
+
+function startPolling() {
+  poll();
+  pollTimer = setInterval(poll, CONFIG.POLL_INTERVAL);
+}
+
+function stopPolling() {
+  if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+}
+
+// Pause polling when tab hidden, resume on focus (with immediate refresh)
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    stopPolling();
+  } else {
+    startPolling();
+  }
+});
+
+// ============================================================
+// DEMO MODE
+// ============================================================
+function loadDemo() {
+  const demo = {
+    updated: new Date().toISOString(),
+    constituencies: {
+      'Clwyd': [
+        { seat: 1, party: 'Labour', candidate: 'Jane Smith', declared: true, timestamp: '' },
+        { seat: 2, party: 'Plaid Cymru', candidate: 'Owen Roberts', declared: true, timestamp: '' },
+        { seat: 3, party: 'Reform UK', candidate: 'David Williams', declared: true, timestamp: '' },
+        { seat: 4, party: '', candidate: '', declared: false, timestamp: '' },
+        { seat: 5, party: '', candidate: '', declared: false, timestamp: '' },
+        { seat: 6, party: '', candidate: '', declared: false, timestamp: '' },
+      ],
+      'Fflint Wrecsam': [
+        { seat: 1, party: 'Labour', candidate: 'Sarah Hughes', declared: true, timestamp: '' },
+        { seat: 2, party: '', candidate: '', declared: false, timestamp: '' },
+        { seat: 3, party: '', candidate: '', declared: false, timestamp: '' },
+        { seat: 4, party: '', candidate: '', declared: false, timestamp: '' },
+        { seat: 5, party: '', candidate: '', declared: false, timestamp: '' },
+        { seat: 6, party: '', candidate: '', declared: false, timestamp: '' },
+      ],
+    }
+  };
+  renderAll(demo);
+}
+
+// ============================================================
+// INIT
+// ============================================================
+if (!CONFIG.API_URL) {
+  document.getElementById('loadingState')?.remove();
+  loadDemo();
+} else {
+  startPolling();
+}
+</script>
+</body>
+</html>
