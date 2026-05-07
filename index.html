@@ -153,6 +153,65 @@
     .post__video-wrap iframe { height: 240px; }
     .post__inner { padding: 14px 16px; }
   }
+
+  /* ============================================================
+     COMPACT MODE — for embedding alongside other content
+     Activated by ?compact=1 in URL
+     ============================================================ */
+  .compact .liveblog { max-width: none; }
+  .compact .liveblog-header { padding: 16px 16px 12px; }
+  .compact .liveblog-header h1 { font-size: 18px; line-height: 1.2; }
+  .compact .liveblog-header__sub { font-size: 12px; }
+  .compact .post-count { display: none; }
+
+  /* Unify timestamp styling — neutral grey across all post types, like results panel */
+  .compact .post__time,
+  .compact .post--goal .post__time,
+  .compact .post--alert .post__time,
+  .compact .post--text .post__time {
+    background: #ececec;
+    color: var(--text-primary);
+    font-size: 11px;
+    padding: 2px 8px;
+    line-height: 18px;
+    margin-bottom: 8px;
+  }
+
+  /* Tighter card padding */
+  .compact .post__inner { padding: 12px 16px; }
+
+  /* Switch body font to sans for visual consistency with results panel */
+  .compact .post__body {
+    font-family: var(--font-display);
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--text-primary);
+  }
+  .compact .post__body p { margin-bottom: 8px; }
+
+  .compact .post__headline { font-size: 15px; letter-spacing: -0.2px; }
+  .compact .post__icon { font-size: 16px; }
+
+  /* Smaller author block */
+  .compact .post__author { margin-bottom: 8px; gap: 8px; }
+  .compact .post__avatar { width: 28px; height: 28px; font-size: 11px; }
+  .compact .post__author-name { font-size: 13px; }
+  .compact .post__author-role { font-size: 11px; }
+
+  /* Hide engagement buttons */
+  .compact .post__engagement { display: none; }
+
+  /* Smaller media */
+  .compact .post__image { height: 160px; }
+  .compact .post__video-wrap iframe { height: 220px; }
+
+  /* Hide footer to save space */
+  .compact .liveblog-footer { display: none; }
+
+  @media (max-width: 480px) {
+    .compact .liveblog-header h1 { font-size: 16px; }
+    .compact .post__inner { padding: 10px 14px; }
+  }
 </style>
 </head>
 <body>
@@ -199,6 +258,7 @@ if (params.get('title')) CONFIG.TITLE = params.get('title');
 if (params.get('subtitle')) CONFIG.SUBTITLE = params.get('subtitle');
 if (params.get('api')) CONFIG.API_URL = params.get('api');
 if (params.get('ended') === 'true') CONFIG.ENDED = true;
+if (params.get('compact') === '1') document.body.classList.add('compact');
 
 document.getElementById('blogTitle').textContent = CONFIG.TITLE;
 document.getElementById('blogSubtitle').textContent = CONFIG.SUBTITLE;
@@ -312,7 +372,7 @@ function getInitials(name) {
 function renderPost(post, isNew = false) {
   const typeClass = post.type === 'goal' ? 'post--goal' : 
                     post.type === 'alert' || post.type === 'key' ? 'post--alert' : 'post--text';
-  const icon = post.type === 'goal' ? '⚽' : 
+  const icon = post.type === 'goal' ? '🗳️' : 
                post.type === 'alert' || post.type === 'key' ? '🔴' : '';
 
   const bodyHtml = (post.body || '').split('\n').filter(p => p.trim()).map(p => `<p>${escapeHtml(p)}</p>`).join('');
