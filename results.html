@@ -157,6 +157,8 @@ body {
 
 /* Footer */
 .results-footer { padding: 20px; text-align: center; font-size: 12px; color: #bbb; border-top: 1px solid var(--border-light); }
+.nohead .results-header { display: none; }
+.nohead .constituencies { padding-top: 4px; }
 
 /* Status / loading */
 .results-status {
@@ -227,6 +229,7 @@ if (params.get('api')) CONFIG.API_URL = params.get('api');
 if (params.get('title')) CONFIG.TITLE = params.get('title');
 if (params.get('subtitle')) CONFIG.SUBTITLE = params.get('subtitle');
 if (params.get('ended') === 'true') CONFIG.ENDED = true;
+if (params.get('nohead') === '1') document.body.classList.add('nohead');
 
 document.getElementById('title').textContent = CONFIG.TITLE;
 document.getElementById('subtitle').textContent = CONFIG.SUBTITLE;
