@@ -242,9 +242,16 @@
 // ============================================================
 // CONFIGURATION
 // ============================================================
+
+// Today's date in Europe/London as YYYY-MM-DD, used for the rolling
+// traffic event ID so the page always shows today without a date in the URL.
+function todayId() {
+  return 'traffic-' + new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/London' });
+}
+
 const CONFIG = {
-  API_URL: 'YOUR_APPS_SCRIPT_URL_HERE',
-  EVENT_ID: '',
+  API_URL: 'https://script.google.com/macros/s/AKfycbzhPY_VJqm1flkqd-7lw8S0lJKLGVU6imUEY2RsHWI7F0MKQ-Kxyd0cTni3bY9-vW8S/exec',
+  EVENT_ID: todayId(),
   POLL_INTERVAL: 15000,
   TITLE: 'Live Updates',
   SUBTITLE: 'Follow all the action as it happens',
@@ -463,6 +470,20 @@ function showNewPosts() {
 // POLLING
 // ============================================================
 async function poll() {
+  // Roll over to the new day's event automatically if the page is left open
+  // overnight, but never override an event_id set explicitly in the URL.
+  if (!params.get('event_id')) {
+    const current = todayId();
+    if (current !== CONFIG.EVENT_ID) {
+      CONFIG.EVENT_ID = current;
+      allPosts = [];
+      pendingPosts = [];
+      lastKnownCount = 0;
+      isFirstLoad = true;
+      document.getElementById('newPostsBar').style.display = 'none';
+    }
+  }
+
   const posts = await fetchPosts();
   if (!posts) return;
 
@@ -505,49 +526,9 @@ function toggleLike(btn) {
 }
 
 // ============================================================
-// DEMO MODE
-// ============================================================
-function loadDemoData() {
-  const demo = [
-    {
-      id: 1, time: '14:32', type: 'alert',
-      headline: 'BREAKING: A55 closed in both directions near Ewloe',
-      body: 'Emergency services are at the scene of a multi-vehicle collision on the A55 near junction 33A at Ewloe.\n\nTraffic Wales has confirmed the road is closed in both directions. Motorists are advised to use alternative routes.',
-      author_name: 'Jonathan', author_role: 'Deeside.com',
-      video_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-    },
-    {
-      id: 2, time: '14:28', type: 'text',
-      body: 'North Wales Police have confirmed they were called at approximately 2:15pm. Ambulance crews are also in attendance. We are awaiting further details on casualties.',
-      author_name: 'Jonathan', author_role: 'Deeside.com',
-    },
-    {
-      id: 3, time: '14:20', type: 'key',
-      headline: 'Traffic building on surrounding roads',
-      body: 'Reports of heavy congestion on the B5125 through Ewloe village as drivers seek alternative routes. Delays also building on the A494 approach to the Ewloe interchange.',
-    },
-    {
-      id: 4, time: '14:15', type: 'text',
-      match: 'A55 Incident — Ewloe',
-      body: 'We are getting initial reports of an incident on the A55 near Ewloe. Emergency services appear to be responding. More details to follow.',
-    },
-  ];
-  allPosts = demo;
-  renderAllPosts(demo);
-  document.getElementById('blogTitle').textContent = 'BREAKING: Major incident on A55 near Ewloe';
-  document.getElementById('blogSubtitle').textContent = 'Live updates on the A55 closure — last updated 14:32 GMT';
-  document.getElementById('postCount').textContent = `${demo.length} updates`;
-}
-
-// ============================================================
 // INIT
 // ============================================================
-if (CONFIG.API_URL === 'YOUR_APPS_SCRIPT_URL_HERE') {
-  document.getElementById('loadingState')?.remove();
-  loadDemoData();
-} else {
-  startPolling();
-}
+startPolling();
 </script>
 
 </body>
