@@ -496,10 +496,9 @@ async function poll() {
     return;
   }
 
-  if (posts.length > lastKnownCount) {
-    const newCount = posts.length - lastKnownCount;
-    pendingPosts = posts.slice(0, newCount);
-    lastKnownCount = posts.length;
+    if (posts.length > allPosts.length) {
+    pendingPosts = posts.slice(0, posts.length - allPosts.length);
+    const newCount = pendingPosts.length;
     const bar = document.getElementById('newPostsBar');
     bar.textContent = `↑ ${newCount} new update${newCount > 1 ? 's' : ''} — click to load`;
     bar.style.display = 'block';
